@@ -149,3 +149,142 @@ Planner가 전역 경로 생성
 RPP가 경로를 부드럽게 추종
 장애물·곡률·충돌 위험에 따라 속도 자동 조절
 Goal 도달 또는 recovery 수행
+
+
+
+DWA + h-a*  
+1️⃣ 이 구조의 한 줄 개념 요약
+
+이 구조는 Nav2를 경로 추종용으로 쓰지 않고,
+경로 생성 + 회피 + 제어를 전부 직접 구현한 방식입니다.
+
+Hybrid A* (전역 경로) + DWA (로컬 회피) + 직접 cmd_vel 제어
+
+즉,
+
+역할	            담당
+전역 경로 계획	     Hybrid A*
+로컬 장애물 회피	 DWA
+최종 속도 출력	     main_controller
+
+
+2️⃣ main_con.launch.py 개념 설명
+
+Nav2 기본 환경 실행 +  main_controller 실행
+
+🔹 Nav2 bringup 부분
+nav2_launch = IncludeLaunchDescription(
+    turtlebot3_navigation2/launch/navigation2.launch.py
+)
+
+여기서 실제로 Nav2가 해주는 역할은:
+map_server
+amcl
+TF 관리
+(cmd_vel은 사용 안 함)
+❌ planner_server
+❌ controller_server
+❌ bt_navigator
+➡ Goal을 Nav2에 보내지 않음
+
+🔹 main_controller 노드
+main_controller_node = Node(
+    package='my_second_pkg',
+    executable='main_controller'
+)
+이 노드가:
+/goal_pose 직접 받음
+/cmd_vel 직접 발행
+Nav2를 완전히 우회
+✔ launch 파일 핵심 요약
+Nav2는 “위치 추정 + 맵”만 담당
+주행 판단은 전부 main_controller
+
+3️⃣ hybrid_a_star.py 개념 설명 (전역 경로)
+🔹 Hybrid A*란?
+
+일반 A*와 차이점:
+
+A*	            Hybrid A*
+격자 중심 이동	연속 좌표 이동
+방향 개념 없음	방향(θ) 포함
+자동차 부적합	차량/로봇 주행 가능
+
+이 코드에서는:
+steering angle: [-20°, 0°, +20°]
+step size: 0.5m
+실제 좌표(x, y, θ)를 상태로 사용
+
+🔹 plan() 함수의 역할
+시작점 → 목표점까지
+조향 가능한 움직임만 써서
+충돌 없이 갈 수 있는 경로 생성
+
+장애물 판단: grid_map > 50
+목표 판정: 0.5m 이내
+
+heuristic: 유클리드 거리
+👉 Nav2 planner_server를 직접 구현한 것
+
+4️⃣ dwa.py 개념 설명 (로컬 회피)
+🔹 DWA란?
+“지금 이 순간 낼 수 있는 속도 후보들 중에서
+가장 안전하고 목표에 가까워지는 속도를 선택”
+
+🔹 DWA 핵심 아이디어
+현재 속도에서 물리적으로 가능한 속도 범위 계산
+각 (v, w)에 대해
+미래 2초간 궤적 예측
+목표 거리 비용
+장애물 거리 비용
+속도 비용 계산
+총 비용 최소인 속도 선택
+
+🔹 이 구현의 특징
+계산량 줄이기 위해 step 크기 키움
+장애물 없으면 바로 직진
+충돌 반경을 넉넉하게 잡음
+👉 Nav2의 DWB 컨트롤러와 개념적으로 동일
+
+5️⃣ main_controller.py 개념 설명 (전체 핵심)
+이 파일이 이 구조의 뇌입니다.
+
+🔹 구독 / 발행 구조
+구독
+토픽	    용도
+/map	    정적 맵
+/amcl_pose	현재 위치
+/scan	    실시간 장애물
+/goal_pose	목표점
+
+발행
+토픽	        용도
+/cmd_vel	    로봇 제어
+/global_plan	RViz 시각화
+
+🔹 전체 동작 흐름 (중요)
+① Goal 수신
+goal_callback → perform_planning()
+
+② 맵 + 라이다 결합
+update_map_with_scan()
+정적 맵 + 라이다 장애물 → current_map
+간이 costmap 역할
+
+③ Hybrid A* 경로 생성
+self.planner.plan()
+전역 경로 생성
+/global_plan으로 RViz 표시
+
+④ Local Goal 선택
+get_local_goal()
+전역 경로에서 0.8m 앞 점 선택
+Pure Pursuit과 유사한 역할
+
+⑤ 제어 루프 (0.1초)
+순서:
+목표 도착 여부 확인
+너무 가까운 장애물 → 긴급 후진
+방향 안 맞으면 회전 우선
+그 외 → DWA로 속도 계산
+/cmd_vel 발행
