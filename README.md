@@ -246,8 +246,7 @@ heuristic: 유클리드 거리
 충돌 반경을 넉넉하게 잡음
 👉 Nav2의 DWB 컨트롤러와 개념적으로 동일
 
-5️⃣ main_controller.py 개념 설명 (전체 핵심)
-이 파일이 이 구조의 뇌입니다.
+5️⃣ main_controller.py 개념 설명
 
 🔹 구독 / 발행 구조
 구독
