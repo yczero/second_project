@@ -15,6 +15,7 @@ setup(
         (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*.launch.py'))),
         (os.path.join('share', package_name, 'config'), glob(os.path.join('config', '*.yaml'))),
         (os.path.join('share', package_name, 'params'), glob(os.path.join('params', '*.yaml'))),
+        (os.path.join('share', package_name, 'map'), glob('map/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -33,6 +34,7 @@ setup(
             'dwa = my_second_pkg.dwa:main',
             'hybrid_a_star = my_second_pkg.hybrid_a_star:main',
             'main_controller = my_second_pkg.main_controller:main',
+            'rpp_obstacle = my_second_pkg.rpp_obstacle:main',
             
         ],
     },
