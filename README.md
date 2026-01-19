@@ -1,4 +1,4 @@
-#1️⃣ RPP란
+# 1️⃣ RPP란
 
 RPP = Regulated Pure Pursuit Controller입니다.
 Nav2에서 제공하는 로컬 경로 추종(Local Controller) 알고리즘 중 하나입니다.
@@ -14,7 +14,7 @@ Regulated가 붙은 이유
 
 RPP는 “경로를 따라가되, 상황에 맞게 속도를 스스로 조절하는 컨트롤러"
 
-#2️⃣ nav2_rpp.launch.py
+# 2️⃣ nav2_rpp.launch.py
 
 이 launch 파일의 목적은:
 AMCL로 위치 추정 → Nav2 전체 실행 → 컨트롤러를 RPP로 사용
