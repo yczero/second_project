@@ -1,56 +1,39 @@
-1️⃣ RPP란 
+#1️⃣ RPP란
 
 RPP = Regulated Pure Pursuit Controller입니다.
 Nav2에서 제공하는 로컬 경로 추종(Local Controller) 알고리즘 중 하나입니다.
 
-기본 개념 (Pure Pursuit)
+#기본 개념 (Pure Pursuit)
 
 전역 경로(Global Path) 위에서
-
-**앞쪽 일정 거리(lookahead)**에 있는 목표점을 하나 잡고
-
+앞쪽 일정 거리(lookahead)에 있는 목표점을 하나 잡고
 그 점을 향하도록 원호(곡선)로 따라가며 주행합니다.
-
 계산이 단순하고 안정적이라 실제 로봇에서 많이 사용됩니다.
-
 Regulated가 붙은 이유
-
 기본 Pure Pursuit의 단점을 보완한 버전입니다.
 
-문제	                      RPP에서의 개선
-장애물 근처에서도 속도가 유지됨	장애물·곡률·정렬 상태에 따라 속도 자동 감소
-좁은 공간에서 불안정	       충돌 시간(Time to Collision) 기반 감속
-곡선에서 과속	               경로 곡률 기반 감속
+RPP는 “경로를 따라가되, 상황에 맞게 속도를 스스로 조절하는 컨트롤러"
 
-즉,
-
-**RPP는 “경로를 따라가되, 상황에 맞게 속도를 스스로 조절하는 컨트롤러”**입니다.
-
-2️⃣ nav2_rpp.launch.py 
+#2️⃣ nav2_rpp.launch.py
 
 이 launch 파일의 목적은:
-
 AMCL로 위치 추정 → Nav2 전체 실행 → 컨트롤러를 RPP로 사용
-
-입니다.
-
 ① Launch Argument 선언
 use_sim_time = LaunchConfiguration('use_sim_time') ->  시뮬레이션 시간 사용 여부
 map_yaml = LaunchConfiguration('map')   -> 사용할 맵 yaml
 params_file = LaunchConfiguration('params_file') ->  Nav2 전체 파라미터 파일
-
-
 
 ② Localization 실행 (map_server + AMCL)
 localization_launch = IncludeLaunchDescription(
     localization_launch.py
 )
 포함되는 노드:
-map_server
-amcl
+map_server,
+amcl,
 lifecycle_manager_localization
+
 역할:
-/map 퍼블리시
+/map 퍼블리시,
 로봇 위치 추정 (map ↔ odom ↔ base_link TF)
 
 
@@ -65,18 +48,10 @@ controller_server → RPP로 경로 추종
 bt_navigator → NavigateToPose 액션 처리
 behavior_server → recovery 동작
 
-
-
 ④ RViz 실행
 rviz2 -d nav2_default_view.rviz    ->Goal 찍고 상태 확인용
 
-✔ 이 launch 파일의 핵심 요약
-Nav2 기본 구조 그대로 사용
-컨트롤러만 RPP로 설정
-별도 커스텀 주행 노드 없음
-RViz에서 Goal 찍으면 그대로 RPP 주행
-
-3️⃣ rpp_params.yaml 
+# 3️⃣ rpp_params.yaml
 이 파일이 실질적인 주행 성능을 결정합니다.
 
 🔹 Lifecycle Manager
@@ -94,10 +69,9 @@ map_server:
 
 🔹 AMCL
 amcl:
-  global_frame_id: "map"
-  odom_frame_id: "odom"
+  global_frame_id: "map",
+  odom_frame_id: "odom",
   base_frame_id: "base_link"
-
 LiDAR 기반 위치 추정
 TF 트리 정상 구성의 핵심
 
@@ -143,32 +117,26 @@ navigate_to_pose_w_replanning_and_recovery.xml
 주행 중 경로 재계획 가능
 막히면 recovery 수행
 
-4️⃣ 전체 흐름 한 줄 요약
-AMCL이 위치 추정
-Planner가 전역 경로 생성
-RPP가 경로를 부드럽게 추종
-장애물·곡률·충돌 위험에 따라 속도 자동 조절
+# 4️⃣ 전체 흐름 한 줄 요약
+AMCL이 위치 추정,
+Planner가 전역 경로 생성,
+RPP가 경로를 부드럽게 추종,
+장애물·곡률·충돌 위험에 따라 속도 자동 조절,
 Goal 도달 또는 recovery 수행
 
 
-
-DWA + h-a*  
-1️⃣ 이 구조의 한 줄 개념 요약
+#DWA + h-a*  
 
 이 구조는 Nav2를 경로 추종용으로 쓰지 않고,
 경로 생성 + 회피 + 제어를 전부 직접 구현한 방식입니다.
-
 Hybrid A* (전역 경로) + DWA (로컬 회피) + 직접 cmd_vel 제어
 
-즉,
-
-역할	            담당
-전역 경로 계획	     Hybrid A*
-로컬 장애물 회피	 DWA
-최종 속도 출력	     main_controller
+*   전역 경로 계획 -> Hybrid A*
+*   로컬 장애물 회피 -> DWA
+*   최종 속도 출력 -> main_controller
 
 
-2️⃣ main_con.launch.py 개념 설명
+#2️⃣ main_con.launch.py 개념 설명
 
 Nav2 기본 환경 실행 +  main_controller 실행
 
@@ -178,8 +146,8 @@ nav2_launch = IncludeLaunchDescription(
 )
 
 여기서 실제로 Nav2가 해주는 역할은:
-map_server
-amcl
+map_server,
+amcl,
 TF 관리
 (cmd_vel은 사용 안 함)
 ❌ planner_server
@@ -200,7 +168,9 @@ Nav2를 완전히 우회
 Nav2는 “위치 추정 + 맵”만 담당
 주행 판단은 전부 main_controller
 
-3️⃣ hybrid_a_star.py 개념 설명 (전역 경로)
+
+
+# 3️⃣ hybrid_a_star.py 개념 설명 (전역 경로)
 🔹 Hybrid A*란?
 
 일반 A*와 차이점:
@@ -226,7 +196,9 @@ step size: 0.5m
 heuristic: 유클리드 거리
 👉 Nav2 planner_server를 직접 구현한 것
 
-4️⃣ dwa.py 개념 설명 (로컬 회피)
+
+
+# 4️⃣ dwa.py 개념 설명 (로컬 회피)
 🔹 DWA란?
 “지금 이 순간 낼 수 있는 속도 후보들 중에서
 가장 안전하고 목표에 가까워지는 속도를 선택”
@@ -246,7 +218,9 @@ heuristic: 유클리드 거리
 충돌 반경을 넉넉하게 잡음
 👉 Nav2의 DWB 컨트롤러와 개념적으로 동일
 
-5️⃣ main_controller.py 개념 설명 (전체 핵심)
+
+
+# 5️⃣ main_controller.py 개념 설명 (전체 핵심)
 이 파일이 이 구조의 뇌입니다.
 
 🔹 구독 / 발행 구조
@@ -288,3 +262,6 @@ Pure Pursuit과 유사한 역할
 방향 안 맞으면 회전 우선
 그 외 → DWA로 속도 계산
 /cmd_vel 발행
+
+
+
